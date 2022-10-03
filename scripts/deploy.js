@@ -1,51 +1,52 @@
-// imports
-const { ethers, run, network } = require("hardhat")
+const { ethers, run, network } = require("hardhat");
 
-// async main
 async function main() {
-  const SimpleStorageFactory = await ethers.getContractFactory("SimpleStorage")
-  console.log("Deploying contract...")
-  const simpleStorage = await SimpleStorageFactory.deploy()
-  await simpleStorage.deployed()
-  console.log(`Deployed contract to: ${simpleStorage.address}`)
-  // what happens when we deploy to our hardhat network?
+  const SimpleStorageFactory = await ethers.getContractFactory("SimpleStorage");
+
+  console.log("Deploying contract...");
+  const aContract = await SimpleStorageFactory.deploy();
+  await aContract.deployed();
+  console.log(`Contract address is ${aContract.address}`);
+  //console.log(network.config);
+  //如果網路的chainId等於5 也就是Goerli測試網 且 etherscan的API KEY存在
   if (network.config.chainId === 5 && process.env.ETHERSCAN_API_KEY) {
-    console.log("Waiting for block confirmations...")
-    await simpleStorage.deployTransaction.wait(6)
-    await verify(simpleStorage.address, [])
+    //等待六個區塊
+    await aContract.deployTransaction.wait("6");
+    //才進行驗證智能合約
+    await verfiy(aContract.address, []);
   }
 
-  const currentValue = await simpleStorage.retrieve()
-  console.log(`Current Value is: ${currentValue}`)
-
-  // Update the current value
-  const transactionResponse = await simpleStorage.store(7)
-  await transactionResponse.wait(1)
-  const updatedValue = await simpleStorage.retrieve()
-  console.log(`Updated Value is: ${updatedValue}`)
+  const ContractValue = await aContract.retrieve();
+  console.log(ContractValue.toString());
+  const UpdateResponse = await aContract.store(777);
+  await UpdateResponse.wait(1);
+  const updateValue = await aContract.retrieve();
+  console.log(updateValue.toString());
 }
 
-// async function verify(contractAddress, args) {
-const verify = async (contractAddress, args) => {
-  console.log("Verifying contract...")
+//async (contractAddress, args) => {
+async function verfiy(contractAddress, args) {
+  console.log("verifying contract...");
   try {
     await run("verify:verify", {
       address: contractAddress,
-      constructorArguments: args,
-    })
+      constructorAruments: args,
+    });
   } catch (e) {
-    if (e.message.toLowerCase().includes("already verified")) {
-      console.log("Already Verified!")
+    //e 代表的是error錯誤訊息
+    //如果e的訊息全部轉成小寫之後,還包含alreay verified,則輸出訊息,否則輸出e的內容
+    //使用try catch來保證整個script不會因為這個function失敗 而跳出  而是會繼續進行下去
+    if (e.message.toLowerCase().includes("alreay verified")) {
+      console.log("The contract is already verified!");
     } else {
-      console.log(e)
+      console.log(e);
     }
   }
 }
 
-// main
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error)
-    process.exit(1)
-  })
+    console.error(error);
+    process.exit(1);
+  });
